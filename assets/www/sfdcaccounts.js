@@ -4,8 +4,8 @@ var numOpportunities = 0;
 function regLinkClickHandlers() {
     var $j = jQuery.noConflict();
     var logToConsole = cordova.require("salesforce/util/logger").logToConsole;
-    $j('#link_fetch_device_accounts').click(function() {
-        logToConsole("link_fetch_device_accounts clicked");
+    $j('#link_fetch_cached_accounts').click(function() {
+        logToConsole("link_fetch_cached_accounts clicked");
         getNumAccounts(onSuccessNumAccounts, onErrorDevice);
     });
 
@@ -92,13 +92,14 @@ function regOppClickHandlers() {
 }
 
 function resetDisplay() {
-    $j("#div_device_account_list").html("")
-    $j("#div_device_opportunity_list").html("")
-    $j("#div_sfdc_opportunity_list").html("")
-    $j("#div_sfdc_account_list").html("")
-    $j("#div_account_editor").html("")
-    $j("#div_opportunity_editor").html("")
-    $j("#console").html("")
+    $j("#div_device_account_list").html("");
+//    $j("#div_device_opportunity_list").html("");
+//    $j("#div_sfdc_opportunity_list").html("");
+    $j("#div_sfdc_account_list").html("");
+    $j("#div_account_editor").html("");
+//    $j("#div_opportunity_editor").html("");
+    $j("#div_output").html("");
+    $j("#console").html("");
 }
 
 function onSuccessNumAccounts(response) {
@@ -138,7 +139,8 @@ function onSuccessDeviceAccounts(response) {
         if (currentPageOrderedEntries.Description === undefined) {
             currentPageOrderedEntries.Description = "";
         }
-        var newLi = $j("<li id='" + currentPageOrderedEntries.Id + "'><a href='#'>" + (i + 1) + " - " + currentPageOrderedEntries.Id + " - "
+        //" - " + currentPageOrderedEntries.Id +
+        var newLi = $j("<li id='" + currentPageOrderedEntries.Id + "'><a href='#'>" + (i + 1) +  " - "
                 + currentPageOrderedEntries.Name + " - " + currentPageOrderedEntries.Description
                 + "</a></li>");
         ul.append(newLi);
@@ -212,7 +214,8 @@ function onSuccessSfdcAccounts(response) {
         }
         var elem = {Id: record.Id, Name: record.Name, Description: record.Description, isDirty: "false"};
         acc.push(elem);
-        var newLi = $j("<li id='" + record.Id + "'><a href='#'>" + (i + 1) + " - " + record.Id + " - "
+        //" - " + record.Id +
+        var newLi = $j("<li id='" + record.Id + "'><a href='#'>" + (i + 1) +  " - "
                 + record.Name + " - " + record.Description +
                 "</a></li>");
         ul.append(newLi);

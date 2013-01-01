@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0; user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0;" />
     <meta http-equiv="Content-type" content="text/html; charset=utf-8">
 
     <!-- include jquery mobile -->
@@ -15,10 +15,19 @@
     <script src="SFHybridApp.js"></script>
     <!-- required for oauth plugin support -->    
     <script src="SalesforceOAuthPlugin.js"></script>
+    <!-- required for smartstore plugin support -->    
+    <script src="SFSmartStorePlugin.js"></script>
 
     <!-- include forcetk for REST transaction support -->
     <script src="forcetk.js"></script>    
 
+    <!-- Load our app-specific code. -->
+    <script src="sfdcsmartstore.js"></script>
+    <script src="sfdcaccounts.js"></script>
+
+	<!-- load our app-specific code -->
+    <script src="inline.js"></script>  
+    
     <!-- log window styling -->
     <style>
       .logWindow {display:none; width:700px;}
@@ -26,105 +35,93 @@
     </style>
 
     <script>
-
-    
     // The version of the REST API you wish to use in your app.
     var apiVersion = "v23.0";
-
-	// If you want to prevent dragging, uncomment this section
-	/*
-	function preventBehavior(e) 
-	{ 
-      e.preventDefault(); 
-    };
-	document.addEventListener("touchmove", preventBehavior, false);
-	*/
-	
-	/* If you are supporting your own protocol, the var invokeString will contain any arguments to the app launch.
-	see http://iphonedevelopertips.com/cocoa/launching-your-own-application-via-a-custom-url-scheme.html
-	for more details -jm */
-	/*
-	function handleOpenURL(url)
-	{
-		// do something with the url passed in.
-	}
-	*/
-	
     var forcetkClient;
     var debugMode = true;
     var logToConsole = cordova.require("salesforce/util/logger").logToConsole;
 
     jQuery(document).ready(function() {
-        //Add event listeners and so forth here
+        // Add event listeners and so forth here.
         logToConsole("onLoad: jquery ready");
-		document.addEventListener("deviceready", onDeviceReady,false);
-
+        document.addEventListener("deviceready", onDeviceReady, false);
     });
 
-    // When this function is called, Cordova has been initialized and is ready to roll 
+    // When this function is called, Cordova has been initialized and is ready to roll.
     function onDeviceReady() {
         logToConsole("onDeviceReady: Cordova ready");
-		//Call getAuthCredentials to get the initial session credentials
-        cordova.require("salesforce/plugin/oauth").getAuthCredentials(salesforceSessionRefreshed, getAuthCredentialsError);
+        // Register soups for offline storage.
+        regAccSoup();
+        regLinkClickHandlersInline();
+    }
 
-        //register to receive notifications when autoRefreshOnForeground refreshes the sfdc session
-        document.addEventListener("salesforceSessionRefresh",salesforceSessionRefreshed,false);
+    function onSuccessRegSoup() {
+        logToConsole("onSuccessRegSoup: Offline soups ready");
+        onRegSoup();
+    }
 
-        //enable buttons
+    function onErrorRegSoup() {
+        logToConsole("onErrorRegSoup: Offline soups not ready");
+        onRegSoup();
+    }
+
+    function onRegSoup() {
+        // Call getAuthCredentials to get the initial session credentials.
+        var sfOAuthPlugin = cordova.require("salesforce/plugin/oauth");
+        sfOAuthPlugin.getAuthCredentials(salesforceSessionRefreshed, getAuthCredentialsError);
+
+        // Register to receive notifications when autoRefreshOnForeground refreshes the SFDC session.
+        document.addEventListener("salesforceSessionRefresh", salesforceSessionRefreshed, false);
+
+        // Enable buttons.
         regLinkClickHandlers();
     }
-        
 
     function salesforceSessionRefreshed(creds) {
-        logToConsole("salesforceSessionRefreshed");
-        
         // Depending on how we come into this method, `creds` may be callback data from the auth
         // plugin, or an event fired from the plugin.  The data is different between the two.
         var credsData = creds;
         if (creds.data)  // Event sets the `data` object with the auth data.
             credsData = creds.data;
-
+        
+        logToConsole("salesforceSessionRefreshed");
         forcetkClient = new forcetk.Client(credsData.clientId, credsData.loginUrl);
         forcetkClient.setSessionToken(credsData.accessToken, apiVersion, credsData.instanceUrl);
         forcetkClient.setRefreshToken(credsData.refreshToken);
         forcetkClient.setUserAgentString(credsData.userAgent);
     }
 
-
     function getAuthCredentialsError(error) {
         logToConsole("getAuthCredentialsError: " + error);
     }
-        
     </script>
-        
-	<!-- load our app-specific code -->
-    <script src="inline.js"></script>       
-
   </head>
   <body>
-      <div data-role="page" data-theme="b" id="jqm-home"> 
-          <div  data-role="header"> 
-              <h1>Hybrid REST Explorer (SalesforceMobileSDK + Cordova + JQM)</h1> 
-          </div> 
+      <div data-role="page" data-theme="b" id="jqm-home">
+          <div  data-role="header">
+              <h1>Hybrid Accounts &amp; Opportunities Application</h1>
+          </div>
 
-          <div id="#content" data-role="content"> 
+          <div id="#content" data-role="content">
+              <a href="#" id="link_fetch_sfdc_accounts" data-role="button" data-inline="true">SFDC Accounts (on Server)</a>
+              <a href="#" id="link_fetch_cached_accounts" data-role="button" data-inline="true">Cached Accounts (Locally)</a>
+              <a href="#" id="link_fetch_device_accounts" data-role="button" data-inline="true">Device Contacts</a>
+              <a href="#" id="link_create_contact" data-role="button" data-inline="true">Create Account</a>
+              <a href="#" id="link_sync_accounts" data-role="button" data-inline="true">Sync (Uploads Edits to Server)</a>
+              <p>
+                  <a href="#" id="link_reset" data-role="button" data-inline="true">Reset (Clears Cached Data)</a>
+                 <a href="#" id="link_logout" data-role="button" data-inline="true">Logout</a>
+              </p>
 
-              <p><a href="#" id="link_fetch_device_contacts" data-role="button" data-inline="true">Fetch Device contacts</a></p>
-              <p><a href="#" id="link_fetch_sfdc_contacts" data-role="button" data-inline="true">Fetch SFDC contacts</a></p>
-              <p><a href="#" id="link_fetch_sfdc_accounts" data-role="button" data-inline="true">Fetch SFDC Accounts</a></p>
-              <p><a href="#" id="link_reset" data-role="button" data-inline="true">Reset</a></p>
-
-              <p><a href="#" id="link_logout" data-role="button" data-inline="true">Logout</a></p>
-
-              <div id="div_device_contact_list"></div>
-              <div id="div_sfdc_contact_list"></div>
+              <div id="div_device_account_list"></div>
               <div id="div_sfdc_account_list"></div>
-
-              <h3>console:</h3>
+              <div id="div_account_editor"></div>
+			
+			  <div id="div_output"></div>
+              <h3>Console:</h3>
               <p id="console" class="logWindow">
               </p>
-          </div> 
-
-      </div> 
+          </div>
+      </div>
   </body>
 </html>
